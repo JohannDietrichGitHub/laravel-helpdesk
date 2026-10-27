@@ -25,6 +25,14 @@ export type TicketMessage = {
     is_internal?: boolean;
     created_at?: string;
     user: TicketUser | null;
+    attachments: TicketAttachment[];
+};
+
+export type TicketAttachment = {
+    id: number;
+    original_name: string;
+    mime_type: string | null;
+    size: number;
 };
 
 export type Ticket = {
@@ -38,6 +46,7 @@ export type Ticket = {
     user: TicketUser;
     assignee: TicketUser | null;
     category: TicketCategory | null;
+    tags?: { id: number; name: string; slug: string }[];
     messages?: TicketMessage[];
 };
 

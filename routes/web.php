@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TicketController;
+use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
@@ -15,6 +15,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.messages.store');
     Route::patch('tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.status.update');
     Route::patch('tickets/{ticket}/assignment', [TicketController::class, 'assign'])->name('tickets.assignment.update');
+    Route::get('attachments/{attachment}/download', [TicketController::class, 'downloadAttachment'])->name('attachments.download');
 });
 
 require __DIR__.'/settings.php';

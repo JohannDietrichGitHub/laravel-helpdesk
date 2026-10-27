@@ -3,11 +3,14 @@
 namespace Tests\Feature\Tickets;
 
 use App\Enums\TicketStatus;
+use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class TicketAuthorizationTest extends TestCase
@@ -110,5 +113,49 @@ class TicketAuthorizationTest extends TestCase
             'id' => $ticket->id,
             'assigned_to' => $agent->id,
         ]);
+    }
+
+    public function test_ticket_replies_can_store_private_attachments(): void
+    {
+        Storage::fake('local');
+        $client = User::factory()->create();
+        $ticket = Ticket::factory()->create(['user_id' => $client->id]);
+
+        $this->actingAs($client)->post(route('tickets.messages.store', $ticket), [
+            'body' => 'Here is the requested screenshot.',
+            'attachments' => [UploadedFile::fake()->create('screenshot.txt', 10, 'text/plain')],
+        ])->assertRedirect();
+
+        $attachment = Attachment::query()->firstOrFail();
+        $this->assertSame('local', $attachment->disk);
+        Storage::disk('local')->assertExists($attachment->path);
+    }
+
+    public function test_only_ticket_participants_can_download_attachments(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create();
+        $otherClient = User::factory()->create();
+        $ticket = Ticket::factory()->create(['user_id' => $owner->id]);
+        $message = $ticket->messages()->create(['user_id' => $owner->id, 'body' => 'Attachment']);
+        $path = UploadedFile::fake()->create('manual.pdf', 10, 'application/pdf')
+            ->store('attachments', 'local');
+        $attachment = $message->attachments()->create([
+            'user_id' => $owner->id,
+            'disk' => 'local',
+            'path' => $path,
+            'original_name' => 'manual.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 10240,
+        ]);
+
+        $this->actingAs($otherClient)
+            ->get(route('attachments.download', $attachment))
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->get(route('attachments.download', $attachment))
+            ->assertOk()
+            ->assertHeader('Content-Disposition');
     }
 }

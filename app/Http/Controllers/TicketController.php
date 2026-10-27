@@ -8,14 +8,17 @@ use App\Http\Requests\AssignTicketRequest;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\UpdateTicketStatusRequest;
+use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TicketController extends Controller
 {
@@ -92,7 +95,7 @@ class TicketController extends Controller
                 'category:id,name',
                 'tags:id,name,slug',
                 'messages.user:id,name,role',
-                'messages.attachments',
+                'messages.attachments:id,message_id,user_id,disk,path,original_name,mime_type,size',
             ]),
             'agents' => request()->user()->role === Role::ADMIN
                 ? User::query()->where('role', Role::AGENT->value)->orderBy('name')->get(['id', 'name'])
@@ -103,10 +106,25 @@ class TicketController extends Controller
     public function storeMessage(StoreMessageRequest $request, Ticket $ticket): RedirectResponse
     {
         DB::transaction(function () use ($request, $ticket): void {
-            $ticket->messages()->create([
-                ...$request->validated(),
+            $data = $request->validated();
+            $files = $data['attachments'] ?? [];
+            unset($data['attachments']);
+
+            $message = $ticket->messages()->create([
+                ...$data,
                 'user_id' => $request->user()->id,
             ]);
+
+            foreach ($files as $file) {
+                $message->attachments()->create([
+                    'user_id' => $request->user()->id,
+                    'disk' => 'local',
+                    'path' => Storage::disk('local')->putFile('attachments', $file),
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+            }
             $ticket->update(['last_reply_at' => now()]);
         });
 
@@ -129,5 +147,17 @@ class TicketController extends Controller
         $ticket->update(['assigned_to' => $request->integer('assigned_to')]);
 
         return back()->with('success', 'Ticket assigned.');
+    }
+
+    public function downloadAttachment(Attachment $attachment): StreamedResponse
+    {
+        $attachment->loadMissing('message.ticket');
+        request()->user()->can('view', $attachment) || abort(403);
+
+        return Storage::disk($attachment->disk)->download(
+            $attachment->path,
+            $attachment->original_name,
+            ['Content-Type' => $attachment->mime_type ?? 'application/octet-stream'],
+        );
     }
 }

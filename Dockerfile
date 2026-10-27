@@ -10,7 +10,7 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-FROM php:8.4-cli-alpine AS assets
+FROM php:8.5.12-cli-alpine AS assets
 
 WORKDIR /var/www/html
 
@@ -27,7 +27,7 @@ RUN cp .env.example .env \
     && php artisan key:generate --force \
     && npm run build
 
-FROM php:8.4-fpm-alpine AS app
+FROM php:8.5.12-fpm-alpine AS app
 
 WORKDIR /var/www/html
 
