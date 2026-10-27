@@ -33,7 +33,7 @@ WORKDIR /var/www/html
 
 RUN apk add --no-cache icu-libs libzip oniguruma netcat-openbsd \
     && apk add --no-cache --virtual .build-dependencies $PHPIZE_DEPS icu-dev libzip-dev oniguruma-dev \
-    && docker-php-ext-install bcmath intl mbstring opcache pcntl pdo_mysql zip \
+    && docker-php-ext-install bcmath intl mbstring pcntl pdo_mysql zip \
     && apk del .build-dependencies
 
 COPY --from=vendor /app/vendor ./vendor
