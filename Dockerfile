@@ -16,6 +16,7 @@ WORKDIR /var/www/html
 
 RUN apk add --no-cache nodejs npm icu-libs libzip oniguruma \
     && apk add --no-cache --virtual .build-dependencies $PHPIZE_DEPS icu-dev libzip-dev oniguruma-dev \
+    && apk upgrade --no-cache \
     && docker-php-ext-install bcmath intl mbstring pdo_mysql zip \
     && apk del .build-dependencies
 
@@ -33,6 +34,7 @@ WORKDIR /var/www/html
 
 RUN apk add --no-cache icu-libs libzip oniguruma netcat-openbsd \
     && apk add --no-cache --virtual .build-dependencies $PHPIZE_DEPS icu-dev libzip-dev oniguruma-dev \
+    && apk upgrade --no-cache \
     && docker-php-ext-install bcmath intl mbstring pcntl pdo_mysql zip \
     && apk del .build-dependencies
 

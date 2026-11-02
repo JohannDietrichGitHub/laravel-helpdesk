@@ -10,33 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: Application checks
+  dependency-audit:
+    name: Dependency audits
     runs-on: ubuntu-latest
-    env:
-      DB_CONNECTION: mysql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_DATABASE: helpdesk
-      DB_USERNAME: helpdesk
-      DB_PASSWORD: helpdesk
-
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_DATABASE: helpdesk
-          MYSQL_USER: helpdesk
-          MYSQL_PASSWORD: helpdesk
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,64 +27,154 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.composer/cache/files
-          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-
-
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: npm
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install npm dependencies
+        run: npm ci
 
       - name: Audit Composer dependencies
-        if: ${{ !cancelled() }}
         run: composer audit --no-interaction
 
       - name: Audit npm dependencies
-        if: ${{ !cancelled() }}
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
-      - name: Verify migrations against MySQL
-        if: ${{ !cancelled() }}
+  migrations:
+    name: Migration verification
+    runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: helpdesk
+      DB_USERNAME: helpdesk
+      DB_PASSWORD: helpdesk
+    services:
+      mysql:
+        image: mysql:8.4
         env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: helpdesk
-          DB_USERNAME: helpdesk
-          DB_PASSWORD: helpdesk
-        run: php artisan migrate:fresh --force
+          MYSQL_DATABASE: helpdesk
+          MYSQL_USER: helpdesk
+          MYSQL_PASSWORD: helpdesk
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, fileinfo, mysql
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate --force && php artisan migrate:fresh --force
 
-      - name: Run Pint
-        if: ${{ !cancelled() }}
-        run: composer lint:check
+  lint:
+    name: PHP lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer lint:check
 
-      - name: Run PHPStan
-        if: ${{ !cancelled() }}
-        run: php -d memory_limit=512M vendor/bin/phpstan analyse
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: php -d memory_limit=512M vendor/bin/phpstan analyse
 
-      - name: Run TypeScript checks
-        if: ${{ !cancelled() }}
-        run: npm run types:check
+  typescript:
+    name: TypeScript checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run types:check
 
-      - name: Run frontend checks
-        if: ${{ !cancelled() }}
-        run: npm run check
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
 
-      - name: Run feature tests
-        if: ${{ !cancelled() }}
-        run: php artisan test --testsuite Feature
+  feature-tests:
+    name: Feature tests
+    runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: helpdesk
+      DB_USERNAME: helpdesk
+      DB_PASSWORD: helpdesk
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: helpdesk
+          MYSQL_USER: helpdesk
+          MYSQL_PASSWORD: helpdesk
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, fileinfo, mysql
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate --force && php artisan test --testsuite Feature
 
-      - name: Run unit tests
-        if: ${{ !cancelled() }}
-        run: php artisan test --testsuite Unit
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate --force && php artisan test --testsuite Unit
 
   docker:
     name: Docker image build
@@ -173,4 +239,4 @@ jobs:
 
       - name: Stop Docker Compose stack
         if: ${{ !cancelled() }}
-        run: docker compose down --volumes
+        run: docker compose down
