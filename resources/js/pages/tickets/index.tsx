@@ -18,7 +18,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { Paginated, Ticket, TicketPriority, TicketStatus } from "@/types";
+import type {
+	Auth,
+	Paginated,
+	Ticket,
+	TicketPriority,
+	TicketStatus,
+} from "@/types";
 
 type TicketIndexProps = {
 	tickets: Paginated<Ticket>;
@@ -27,10 +33,11 @@ type TicketIndexProps = {
 		status: string;
 		priority: string;
 	};
+	auth: Auth;
 };
 
 export default function Index() {
-	const { tickets, filters } = usePage<TicketIndexProps>().props;
+	const { tickets, filters, auth } = usePage<TicketIndexProps>().props;
 	const [search, setSearch] = useState(filters.search);
 	const [status, setStatus] = useState(filters.status);
 	const [priority, setPriority] = useState(filters.priority);
@@ -53,12 +60,14 @@ export default function Index() {
 						title="Tickets"
 						description="Track every customer request from first message to resolution."
 					/>
-					<Link
-						href="/tickets/create"
-						className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring"
-					>
-						<Plus className="size-4" /> New ticket
-					</Link>
+					{auth.user.role !== "admin" && (
+						<Link
+							href="/tickets/create"
+							className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring"
+						>
+							<Plus className="size-4" /> New ticket
+						</Link>
+					)}
 				</div>
 
 				<form

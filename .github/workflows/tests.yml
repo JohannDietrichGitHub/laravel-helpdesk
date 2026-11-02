@@ -3,7 +3,7 @@ name: tests
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
 
 permissions:
@@ -12,6 +12,22 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: helpdesk
+          MYSQL_USER: helpdesk
+          MYSQL_PASSWORD: helpdesk
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout code
@@ -22,17 +38,65 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
+          extensions: mbstring, dom, curl, fileinfo, mysql
           tools: composer:v2
           coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
 
       - name: Setup Application
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: helpdesk
+          DB_USERNAME: helpdesk
+          DB_PASSWORD: helpdesk
         run: composer setup
 
-      - name: Run CI Checks
-        run: composer ci:check
+      - name: Verify migrations against MySQL
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: helpdesk
+          DB_USERNAME: helpdesk
+          DB_PASSWORD: helpdesk
+        run: php artisan migrate:fresh --force
+
+      - name: Run PHP style and static checks
+        run: |
+          composer lint:check
+          composer types:check
+
+      - name: Run frontend checks
+        run: |
+          npm run types:check
+          npm run check
+
+      - name: Run focused feature tests
+        run: php artisan test --testsuite Feature
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build application image
+        run: docker build --target app --tag helpdesk:ci .

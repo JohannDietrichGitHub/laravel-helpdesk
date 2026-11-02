@@ -1,4 +1,12 @@
 import { Head, Link } from "@inertiajs/react";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	ResponsiveContainer,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { EmptyState } from "@/components/empty-state";
 import { PriorityBadge, StatusBadge } from "@/components/ticket-badges";
 import { dashboard } from "@/routes";
@@ -12,7 +20,7 @@ const roleContent = {
 		cards: [
 			["total", "Total tickets"],
 			["open", "Open"],
-			["waiting_on_client", "Waiting for you"],
+			["in_progress", "In progress"],
 			["resolved", "Resolved"],
 		],
 	},
@@ -42,7 +50,7 @@ const roleContent = {
 } as const;
 
 export default function Dashboard(
-	{ role, stats, recentTickets }: DashboardProps,
+	{ role, metrics, recentTickets }: DashboardProps,
 ) {
 	const content = roleContent[role];
 
@@ -72,10 +80,116 @@ export default function Dashboard(
 								{label}
 							</p>
 							<p className="mt-2 text-3xl font-semibold tracking-tight">
-								{stats[key]}
+								{metrics[key]}
 							</p>
 						</article>
 					))}
+				</section>
+
+				<section className="grid gap-4 lg:grid-cols-2">
+					<article className="rounded-xl border border-border bg-card p-5">
+						<div className="flex items-start justify-between gap-4">
+							<div>
+								<h2 className="font-semibold">
+									Tickets by status
+								</h2>
+								<p className="mt-1 text-sm text-muted-foreground">
+									Current workload distribution.
+								</p>
+							</div>
+							<div className="text-right">
+								<p className="text-2xl font-semibold tracking-tight">
+									{Math.round(
+										metrics.average_resolution_hours,
+									)}h
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Avg. resolution
+								</p>
+							</div>
+						</div>
+						<div className="mt-5 h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart
+									data={metrics.status_breakdown}
+									margin={{
+										top: 8,
+										right: 8,
+										left: -20,
+										bottom: 8,
+									}}
+								>
+									<CartesianGrid
+										stroke="var(--border)"
+										strokeDasharray="3 3"
+									/>
+									<XAxis
+										dataKey="name"
+										tick={{
+											fill: "var(--muted-foreground)",
+											fontSize: 12,
+										}}
+									/>
+									<YAxis
+										allowDecimals={false}
+										tick={{
+											fill: "var(--muted-foreground)",
+											fontSize: 12,
+										}}
+									/>
+									<Bar
+										dataKey="value"
+										fill="var(--primary)"
+										radius={[4, 4, 0, 0]}
+									/>
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</article>
+
+					<article className="rounded-xl border border-border bg-card p-5">
+						<h2 className="font-semibold">Tickets by priority</h2>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Where attention is concentrated.
+						</p>
+						<div className="mt-5 h-64">
+							<ResponsiveContainer width="100%" height="100%">
+								<BarChart
+									data={metrics.priority_breakdown}
+									margin={{
+										top: 8,
+										right: 8,
+										left: -20,
+										bottom: 8,
+									}}
+								>
+									<CartesianGrid
+										stroke="var(--border)"
+										strokeDasharray="3 3"
+									/>
+									<XAxis
+										dataKey="name"
+										tick={{
+											fill: "var(--muted-foreground)",
+											fontSize: 12,
+										}}
+									/>
+									<YAxis
+										allowDecimals={false}
+										tick={{
+											fill: "var(--muted-foreground)",
+											fontSize: 12,
+										}}
+									/>
+									<Bar
+										dataKey="value"
+										fill="var(--chart-2)"
+										radius={[4, 4, 0, 0]}
+									/>
+								</BarChart>
+							</ResponsiveContainer>
+						</div>
+					</article>
 				</section>
 
 				<section className="overflow-hidden rounded-xl border border-border bg-card">

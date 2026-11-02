@@ -22,7 +22,7 @@ class TicketPolicy
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->role !== Role::ADMIN;
     }
 
     public function reply(User $user, Ticket $ticket): bool

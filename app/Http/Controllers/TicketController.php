@@ -12,6 +12,7 @@ use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\DashboardMetrics;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,12 +59,14 @@ class TicketController extends Controller
 
     public function create(): Response
     {
+        request()->user()->can('create', Ticket::class) || abort(403);
+
         return Inertia::render('tickets/create', [
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
-    public function store(StoreTicketRequest $request): RedirectResponse
+    public function store(StoreTicketRequest $request, DashboardMetrics $metrics): RedirectResponse
     {
         $ticket = DB::transaction(function () use ($request): Ticket {
             $data = $request->validated();
@@ -80,6 +83,7 @@ class TicketController extends Controller
 
             return $ticket;
         });
+        $metrics->forgetForUser($request->user());
 
         return to_route('tickets.show', $ticket)->with('success', 'Ticket created.');
     }
@@ -131,20 +135,26 @@ class TicketController extends Controller
         return back()->with('success', 'Reply added.');
     }
 
-    public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket): RedirectResponse
+    public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket, DashboardMetrics $metrics): RedirectResponse
     {
         $status = TicketStatus::from($request->string('status')->toString());
         $ticket->update([
             'status' => $status,
             'resolved_at' => $status === TicketStatus::RESOLVED ? now() : null,
         ]);
+        $metrics->forgetForTicket($ticket);
 
         return back()->with('success', 'Ticket status updated.');
     }
 
-    public function assign(AssignTicketRequest $request, Ticket $ticket): RedirectResponse
+    public function assign(AssignTicketRequest $request, Ticket $ticket, DashboardMetrics $metrics): RedirectResponse
     {
+        $previousAssignee = $ticket->assigned_to;
         $ticket->update(['assigned_to' => $request->integer('assigned_to')]);
+        $metrics->forgetForTicket($ticket);
+        if ($previousAssignee !== null && $previousAssignee !== $ticket->assigned_to) {
+            $metrics->forgetForUser(User::query()->findOrFail($previousAssignee));
+        }
 
         return back()->with('success', 'Ticket assigned.');
     }

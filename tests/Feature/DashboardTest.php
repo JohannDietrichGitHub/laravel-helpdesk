@@ -37,7 +37,7 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('dashboard')
                 ->where('role', 'client')
-                ->where('stats.total', 1)
+                ->where('metrics.total', 1)
                 ->count('recentTickets', 1),
             );
     }
@@ -53,7 +53,7 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('dashboard')
                 ->where('role', 'agent')
-                ->where('stats.total', 1)
+                ->where('metrics.total', 1)
                 ->count('recentTickets', 1),
             );
     }
@@ -67,7 +67,7 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('dashboard')
                 ->where('role', 'admin')
-                ->where('stats.total', 2)
+                ->where('metrics.total', 2)
                 ->count('recentTickets', 2),
             );
     }

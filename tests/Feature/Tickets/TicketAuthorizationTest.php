@@ -75,6 +75,22 @@ class TicketAuthorizationTest extends TestCase
         ]);
     }
 
+    public function test_admins_cannot_create_tickets(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('tickets.create'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->post(route('tickets.store'), [
+                'title' => 'Admin ticket',
+                'description' => 'This request should be rejected.',
+            ])
+            ->assertForbidden();
+    }
+
     public function test_only_assigned_agents_can_change_ticket_status(): void
     {
         $assignedAgent = User::factory()->agent()->create();

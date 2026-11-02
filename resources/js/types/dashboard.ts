@@ -13,6 +13,17 @@ export type DashboardStats = {
 
 export type DashboardProps = {
     readonly role: UserRole;
-    readonly stats: DashboardStats;
+    readonly metrics: DashboardMetrics;
     readonly recentTickets: Ticket[];
+};
+
+export type DashboardChartDatum = {
+    readonly name: string;
+    readonly value: number;
+};
+
+export type DashboardMetrics = DashboardStats & {
+    readonly average_resolution_hours: number;
+    readonly status_breakdown: DashboardChartDatum[];
+    readonly priority_breakdown: DashboardChartDatum[];
 };

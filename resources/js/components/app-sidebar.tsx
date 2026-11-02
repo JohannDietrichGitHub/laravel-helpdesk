@@ -30,7 +30,7 @@ const mainNavItems = (role: UserRole): NavItem[] => [
         title: 'New ticket',
         href: '/tickets/create',
         icon: Plus,
-        roles: ['client', 'agent', 'admin'],
+        roles: ['client', 'agent'],
     },
 ];
 

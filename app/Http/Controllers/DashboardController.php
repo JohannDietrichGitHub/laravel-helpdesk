@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Role;
-use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Services\DashboardMetrics;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, DashboardMetrics $metrics): Response
     {
         $user = $request->user();
         $tickets = Ticket::query()
@@ -21,15 +21,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'role' => $user->role->value,
-            'stats' => [
-                'total' => (clone $tickets)->count(),
-                'open' => (clone $tickets)->where('status', TicketStatus::OPEN)->count(),
-                'in_progress' => (clone $tickets)->where('status', TicketStatus::IN_PROGRESS)->count(),
-                'waiting_on_client' => (clone $tickets)->where('status', TicketStatus::WAITING_ON_CLIENT)->count(),
-                'resolved' => (clone $tickets)->where('status', TicketStatus::RESOLVED)->count(),
-                'urgent' => (clone $tickets)->where('priority', 'urgent')->count(),
-                'unassigned' => (clone $tickets)->whereNull('assigned_to')->count(),
-            ],
+            'metrics' => $metrics->for($user),
             'recentTickets' => (clone $tickets)->latest('last_reply_at')->limit(5)->get(),
         ]);
     }
