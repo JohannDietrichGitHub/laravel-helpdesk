@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Cache;
 
 class DashboardMetrics
 {
+    /**
+     * @return array<string, int|float|array<int, array{name: string, value: int}>>
+     */
     public function for(User $user): array
     {
         return Cache::remember(
@@ -37,6 +40,9 @@ class DashboardMetrics
         Cache::forget($this->key(Role::ADMIN));
     }
 
+    /**
+     * @return array<string, int|float|array<int, array{name: string, value: int}>>
+     */
     private function calculate(User $user): array
     {
         $tickets = Ticket::query()
@@ -60,6 +66,11 @@ class DashboardMetrics
         ];
     }
 
+    /**
+     * @param  Builder<Ticket>  $tickets
+     * @param  list<TicketStatus|TicketPriority>  $values
+     * @return array<int, array{name: string, value: int}>
+     */
     private function breakdown(Builder $tickets, string $column, array $values): array
     {
         return collect($values)->map(fn ($value): array => [

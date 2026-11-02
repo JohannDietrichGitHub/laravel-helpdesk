@@ -22,7 +22,12 @@ const mainNavItems = (role: UserRole): NavItem[] => [
         icon: LayoutGrid,
     },
     {
-        title: role === 'client' ? 'My tickets' : role === 'agent' ? 'Assigned tickets' : 'All tickets',
+        title:
+            role === 'client'
+                ? 'My tickets'
+                : role === 'agent'
+                  ? 'Assigned tickets'
+                  : 'All tickets',
         href: '/tickets',
         icon: Inbox,
     },

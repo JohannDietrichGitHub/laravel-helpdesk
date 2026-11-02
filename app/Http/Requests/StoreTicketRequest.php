@@ -12,6 +12,9 @@ class StoreTicketRequest extends FormRequest
         return $this->user()?->can('create', Ticket::class) ?? false;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

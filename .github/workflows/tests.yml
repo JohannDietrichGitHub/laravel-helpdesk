@@ -79,7 +79,7 @@ jobs:
       - name: Run PHP style and static checks
         run: |
           composer lint:check
-          composer types:check
+          php -d memory_limit=512M vendor/bin/phpstan analyse
 
       - name: Run frontend checks
         run: |

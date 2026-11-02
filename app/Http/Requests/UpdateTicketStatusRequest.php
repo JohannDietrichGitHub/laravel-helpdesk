@@ -17,6 +17,9 @@ class UpdateTicketStatusRequest extends FormRequest
             && ($this->user()?->can('changeStatus', $ticket) ?? false);
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return ['status' => ['required', new Enum(TicketStatus::class)]];

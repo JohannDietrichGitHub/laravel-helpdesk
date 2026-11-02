@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -11,7 +12,7 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guests_are_redirected_to_the_login_page()
+    public function test_guests_are_redirected_to_the_login_page(): void
     {
         $response = $this->get(route('dashboard'));
         $response->assertRedirect(route('login'));
@@ -30,8 +31,8 @@ class DashboardTest extends TestCase
     {
         $client = User::factory()->create();
         $otherClient = User::factory()->create();
-        \App\Models\Ticket::factory()->create(['user_id' => $client->id]);
-        \App\Models\Ticket::factory()->create(['user_id' => $otherClient->id]);
+        Ticket::factory()->create(['user_id' => $client->id]);
+        Ticket::factory()->create(['user_id' => $otherClient->id]);
 
         $this->actingAs($client)->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page
@@ -46,8 +47,8 @@ class DashboardTest extends TestCase
     {
         $agent = User::factory()->agent()->create();
         $otherAgent = User::factory()->agent()->create();
-        \App\Models\Ticket::factory()->create(['assigned_to' => $agent->id]);
-        \App\Models\Ticket::factory()->create(['assigned_to' => $otherAgent->id]);
+        Ticket::factory()->create(['assigned_to' => $agent->id]);
+        Ticket::factory()->create(['assigned_to' => $otherAgent->id]);
 
         $this->actingAs($agent)->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page
@@ -61,7 +62,7 @@ class DashboardTest extends TestCase
     public function test_admins_receive_the_full_dashboard_ticket_data(): void
     {
         $admin = User::factory()->admin()->create();
-        \App\Models\Ticket::factory()->count(2)->create();
+        Ticket::factory()->count(2)->create();
 
         $this->actingAs($admin)->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page

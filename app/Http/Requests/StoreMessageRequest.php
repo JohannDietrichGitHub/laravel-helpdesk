@@ -17,6 +17,9 @@ class StoreMessageRequest extends FormRequest
             && ($this->user()?->can('reply', $ticket) ?? false);
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

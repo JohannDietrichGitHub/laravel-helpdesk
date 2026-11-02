@@ -12,7 +12,8 @@ class CategoryFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->unique()->words(2, true);
+        $name = fake()->unique()->words(2);
+        $name = is_array($name) ? implode(' ', $name) : $name;
 
         return [
             'name' => ucfirst($name),
