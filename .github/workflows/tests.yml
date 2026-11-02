@@ -1,4 +1,4 @@
-name: tests
+name: CI
 
 on:
   push:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   ci:
+    name: Application checks
     runs-on: ubuntu-latest
     env:
       DB_CONNECTION: mysql
@@ -66,7 +67,16 @@ jobs:
       - name: Setup Application
         run: composer setup
 
+      - name: Audit Composer dependencies
+        if: ${{ !cancelled() }}
+        run: composer audit --no-interaction
+
+      - name: Audit npm dependencies
+        if: ${{ !cancelled() }}
+        run: npm audit --audit-level=high
+
       - name: Verify migrations against MySQL
+        if: ${{ !cancelled() }}
         env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
@@ -76,20 +86,32 @@ jobs:
           DB_PASSWORD: helpdesk
         run: php artisan migrate:fresh --force
 
-      - name: Run PHP style and static checks
-        run: |
-          composer lint:check
-          php -d memory_limit=512M vendor/bin/phpstan analyse
+      - name: Run Pint
+        if: ${{ !cancelled() }}
+        run: composer lint:check
+
+      - name: Run PHPStan
+        if: ${{ !cancelled() }}
+        run: php -d memory_limit=512M vendor/bin/phpstan analyse
+
+      - name: Run TypeScript checks
+        if: ${{ !cancelled() }}
+        run: npm run types:check
 
       - name: Run frontend checks
-        run: |
-          npm run types:check
-          npm run check
+        if: ${{ !cancelled() }}
+        run: npm run check
 
-      - name: Run focused feature tests
+      - name: Run feature tests
+        if: ${{ !cancelled() }}
         run: php artisan test --testsuite Feature
 
+      - name: Run unit tests
+        if: ${{ !cancelled() }}
+        run: php artisan test --testsuite Unit
+
   docker:
+    name: Docker image build
     runs-on: ubuntu-latest
 
     steps:
@@ -100,3 +122,55 @@ jobs:
 
       - name: Build application image
         run: docker build --target app --tag helpdesk:ci .
+
+      - name: Scan application image
+        run: >-
+          docker run --rm
+          -v /var/run/docker.sock:/var/run/docker.sock
+          aquasec/trivy:0.69.0 image
+          --exit-code 1
+          --severity HIGH,CRITICAL
+          helpdesk:ci
+
+  e2e:
+    name: Docker Compose E2E
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start Docker Compose stack
+        run: |
+          cp .env.example .env
+          docker compose up --build --detach --wait --wait-timeout 120
+
+      - name: Seed demo data
+        run: docker compose exec --no-TTY app php artisan db:seed --force
+
+      - name: Wait for HTTP service
+        run: curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://127.0.0.1:8000
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test --project=chromium
+        working-directory: e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Stop Docker Compose stack
+        if: ${{ !cancelled() }}
+        run: docker compose down --volumes

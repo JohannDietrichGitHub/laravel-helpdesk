@@ -33,6 +33,16 @@ class TicketAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_admins_can_view_any_ticket(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $ticket = Ticket::factory()->create();
+
+        $this->actingAs($admin)
+            ->get(route('tickets.show', $ticket))
+            ->assertOk();
+    }
+
     public function test_assigned_agents_can_view_tickets(): void
     {
         $agent = User::factory()->agent()->create();
@@ -111,6 +121,16 @@ class TicketAuthorizationTest extends TestCase
         ]);
     }
 
+    public function test_clients_cannot_change_ticket_status(): void
+    {
+        $client = User::factory()->create();
+        $ticket = Ticket::factory()->create(['user_id' => $client->id]);
+
+        $this->actingAs($client)
+            ->patch(route('tickets.status.update', $ticket), ['status' => TicketStatus::RESOLVED->value])
+            ->assertForbidden();
+    }
+
     public function test_only_admins_can_assign_tickets(): void
     {
         $admin = User::factory()->admin()->create();
@@ -129,6 +149,17 @@ class TicketAuthorizationTest extends TestCase
             'id' => $ticket->id,
             'assigned_to' => $agent->id,
         ]);
+    }
+
+    public function test_clients_cannot_assign_tickets(): void
+    {
+        $client = User::factory()->create();
+        $agent = User::factory()->agent()->create();
+        $ticket = Ticket::factory()->create(['user_id' => $client->id]);
+
+        $this->actingAs($client)
+            ->patch(route('tickets.assignment.update', $ticket), ['assigned_to' => $agent->id])
+            ->assertForbidden();
     }
 
     public function test_ticket_replies_can_store_private_attachments(): void
