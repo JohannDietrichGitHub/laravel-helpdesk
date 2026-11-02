@@ -16,7 +16,7 @@ test('allows the seeded admin to sign in and view tickets', async ({
 }) => {
     await page.goto('/login');
     await page.getByLabel('Email address').fill('admin@example.com');
-    await page.getByLabel('Password').fill('password');
+    await page.getByRole('textbox', { name: 'Password' }).fill('password');
     await page.locator('[data-test="login-button"]').click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
