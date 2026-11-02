@@ -9,6 +9,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardMetrics
 {
@@ -57,10 +58,7 @@ class DashboardMetrics
             'resolved' => (clone $tickets)->where('status', TicketStatus::RESOLVED)->count(),
             'urgent' => (clone $tickets)->where('priority', TicketPriority::URGENT)->count(),
             'unassigned' => (clone $tickets)->whereNull('assigned_to')->count(),
-            'average_resolution_hours' => (float) ((clone $tickets)
-                ->whereNotNull('resolved_at')
-                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as average_hours')
-                ->value('average_hours') ?? 0),
+            'average_resolution_hours' => $this->averageResolutionHours($tickets),
             'status_breakdown' => $this->breakdown($tickets, 'status', TicketStatus::cases()),
             'priority_breakdown' => $this->breakdown($tickets, 'priority', TicketPriority::cases()),
         ];
@@ -77,6 +75,24 @@ class DashboardMetrics
             'name' => str($value->value)->replace('_', ' ')->title()->toString(),
             'value' => (clone $tickets)->where($column, $value)->count(),
         ])->values()->all();
+    }
+
+    /**
+     * @param  Builder<Ticket>  $tickets
+     */
+    private function averageResolutionHours(Builder $tickets): float
+    {
+        $query = (clone $tickets)->whereNotNull('resolved_at');
+
+        $average = DB::connection()->getDriverName() === 'sqlite'
+            ? $query->selectRaw(
+                'AVG((julianday(resolved_at) - julianday(created_at)) * 24) as average_hours',
+            )
+            : $query->selectRaw(
+                'AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as average_hours',
+            );
+
+        return (float) ($average->value('average_hours') ?? 0);
     }
 
     private function key(Role $role, ?int $userId = null): string

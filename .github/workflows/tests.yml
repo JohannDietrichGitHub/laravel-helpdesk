@@ -12,6 +12,13 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: helpdesk
+      DB_USERNAME: helpdesk
+      DB_PASSWORD: helpdesk
 
     services:
       mysql:
@@ -57,13 +64,6 @@ jobs:
           cache: npm
 
       - name: Setup Application
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: helpdesk
-          DB_USERNAME: helpdesk
-          DB_PASSWORD: helpdesk
         run: composer setup
 
       - name: Verify migrations against MySQL
