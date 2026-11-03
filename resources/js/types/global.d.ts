@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { SharedTranslations } from '@/types/i18n';
 
 declare module 'react' {
     interface InputHTMLAttributes<T> {
@@ -12,6 +13,9 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            locale: string;
+            locales: string[];
+            translations: SharedTranslations;
             [key: string]: unknown;
         };
     }

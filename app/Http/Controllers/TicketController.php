@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\Role;
 use App\Enums\TicketStatus;
+use App\Events\TicketReplyAdded;
+use App\Events\TicketStatusChanged;
 use App\Http\Requests\AssignTicketRequest;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Requests\StoreTicketRequest;
@@ -130,6 +132,8 @@ class TicketController extends Controller
                 ]);
             }
             $ticket->update(['last_reply_at' => now()]);
+
+            TicketReplyAdded::dispatch($ticket->load(['user', 'assignee']), $message, $request->user());
         });
 
         return back()->with('success', 'Reply added.');
@@ -137,12 +141,14 @@ class TicketController extends Controller
 
     public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket, DashboardMetrics $metrics): RedirectResponse
     {
+        $previousStatus = TicketStatus::from($ticket->getRawOriginal('status'));
         $status = TicketStatus::from($request->string('status')->toString());
         $ticket->update([
             'status' => $status,
             'resolved_at' => $status === TicketStatus::RESOLVED ? now() : null,
         ]);
         $metrics->forgetForTicket($ticket);
+        TicketStatusChanged::dispatch($ticket->load(['user', 'assignee']), $previousStatus, $status, $request->user());
 
         return back()->with('success', 'Ticket status updated.');
     }

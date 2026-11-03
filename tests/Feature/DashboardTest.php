@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -71,5 +74,50 @@ class DashboardTest extends TestCase
                 ->where('metrics.total', 2)
                 ->count('recentTickets', 2),
             );
+    }
+
+    public function test_dashboard_metrics_include_breakdowns_and_average_resolution_time(): void
+    {
+        Cache::flush();
+        $admin = User::factory()->admin()->create();
+        $createdAt = now()->subHours(6);
+
+        Ticket::factory()->create([
+            'status' => TicketStatus::RESOLVED,
+            'priority' => TicketPriority::URGENT,
+            'created_at' => $createdAt,
+            'resolved_at' => $createdAt->copy()->addHours(6),
+        ]);
+        Ticket::factory()->create([
+            'status' => TicketStatus::OPEN,
+            'priority' => TicketPriority::LOW,
+        ]);
+
+        $this->actingAs($admin)->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.total', 2)
+                ->where('metrics.resolved', 1)
+                ->where('metrics.urgent', 1)
+                ->where('metrics.average_resolution_hours', 6)
+                ->where('metrics.status_breakdown.3.value', 1)
+                ->where('metrics.priority_breakdown.3.value', 1),
+            );
+    }
+
+    public function test_ticket_changes_invalidate_cached_dashboard_metrics(): void
+    {
+        Cache::flush();
+        $admin = User::factory()->admin()->create();
+        $ticket = Ticket::factory()->create();
+
+        $this->actingAs($admin)->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('metrics.total', 1));
+
+        $this->actingAs($admin)->patch(route('tickets.status.update', $ticket), [
+            'status' => TicketStatus::RESOLVED->value,
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('metrics.resolved', 1));
     }
 }

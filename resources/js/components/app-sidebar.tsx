@@ -14,25 +14,29 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { Auth, NavItem, UserRole } from '@/types';
+import { useTranslations } from '@/hooks/use-translations';
 
-const mainNavItems = (role: UserRole): NavItem[] => [
+const mainNavItems = (
+    role: UserRole,
+    labels: ReturnType<typeof useTranslations>['shell'],
+): NavItem[] => [
     {
-        title: 'Dashboard',
+        title: labels.dashboard,
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
         title:
             role === 'client'
-                ? 'My tickets'
+                ? labels.my_tickets
                 : role === 'agent'
-                  ? 'Assigned tickets'
-                  : 'All tickets',
+                  ? labels.assigned_tickets
+                  : labels.all_tickets,
         href: '/tickets',
         icon: Inbox,
     },
     {
-        title: 'New ticket',
+        title: labels.new_ticket,
         href: '/tickets/create',
         icon: Plus,
         roles: ['client', 'agent'],
@@ -41,6 +45,7 @@ const mainNavItems = (role: UserRole): NavItem[] => [
 
 export function AppSidebar() {
     const { auth } = usePage<{ auth: Auth }>().props;
+    const translations = useTranslations();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -57,7 +62,9 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems(auth.user.role)} />
+                <NavMain
+                    items={mainNavItems(auth.user.role, translations.shell)}
+                />
             </SidebarContent>
 
             <SidebarFooter>
