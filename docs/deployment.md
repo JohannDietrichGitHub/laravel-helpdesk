@@ -1,10 +1,10 @@
-# Deployment
+# Déploiement
 
-## Target
+## Cible
 
-The release workflow publishes the `app` target to GitHub Container Registry on version tags. Deploy that image to a container platform that supports a web process, a persistent MySQL service, a long-running queue worker, and a scheduler process. The image exposes PHP-FPM behind Nginx; do not run `php artisan serve` in production.
+Le workflow de release publie la cible `app` dans GitHub Container Registry lors des tags de version. Déployez cette image sur une plateforme supportant un processus web, MySQL persistant, un worker de queue long-lived et un scheduler. L’image expose PHP-FPM derrière Nginx ; ne lancez pas `php artisan serve` en production.
 
-## Required secrets
+## Secrets requis
 
 - `APP_KEY`
 - `APP_URL`
@@ -12,20 +12,20 @@ The release workflow publishes the `app` target to GitHub Container Registry on 
 - `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, and provider credentials when using external SMTP
 - `SANCTUM_STATEFUL_DOMAINS` if browser-based Sanctum clients are added
 
-Keep `.env` out of source control. Generate `APP_KEY` once per environment and back up encrypted database credentials through the hosting provider.
+Gardez `.env` hors du contrôle de version. Générez `APP_KEY` une fois par environnement et sauvegardez les identifiants de base de données de manière chiffrée chez l’hébergeur.
 
-## Release procedure
+## Procédure de release
 
-1. Build and scan the immutable image.
-2. Run `php artisan migrate --force` against the release database.
-3. Start the app and Nginx processes.
-4. Start queue and scheduler processes from the same image.
-5. Verify `/up`, the app healthcheck, queue logs, scheduler logs, and a database-backed request.
+1. Construire et scanner l’image immuable.
+2. Exécuter `php artisan migrate --force` sur la base de release.
+3. Démarrer l’application et Nginx.
+4. Démarrer la queue et le scheduler depuis la même image.
+5. Vérifier `/up`, le healthcheck, les logs de queue et scheduler, ainsi qu’une requête utilisant la base.
 
 ## Rollback
 
-Roll back the image tag first. Database migrations must be backward-compatible; only run `php artisan migrate:rollback --step=1` after confirming the previous application version supports the resulting schema. Restore the database from the provider backup for destructive failures.
+Commencez par revenir au tag d’image précédent. Les migrations doivent rester rétrocompatibles ; n’exécutez `php artisan migrate:rollback --step=1` qu’après avoir vérifié que la version précédente supporte le schéma obtenu. Pour une régression destructive, restaurez la base depuis la sauvegarde du fournisseur.
 
-## Runtime checks
+## Vérifications runtime
 
-The Compose app healthcheck runs `php artisan about`. Nginx exposes the application on port 80. MySQL uses `mysqladmin ping`; queue and scheduler are separate restartable services.
+Le healthcheck du service Compose `app` exécute `php artisan about`. Nginx expose l’application sur le port 80. MySQL utilise `mysqladmin ping`; la queue et le scheduler sont des services séparés et redémarrables.

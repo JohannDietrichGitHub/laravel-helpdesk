@@ -1,8 +1,8 @@
-# REST API
+# API REST
 
-The versioned API is available under `/api/v1` and uses Laravel Sanctum personal access tokens.
+L’API versionnée est disponible sous `/api/v1` et utilise des tokens personnels Laravel Sanctum.
 
-## Authentication
+## Authentification
 
 ```http
 POST /api/v1/auth/tokens
@@ -11,21 +11,21 @@ Content-Type: application/json
 {"email":"client@example.test","password":"password","device_name":"cli"}
 ```
 
-Use the returned token as `Authorization: Bearer <token>`.
+Envoyez le token retourné dans `Authorization: Bearer <token>`.
 
 ## Tickets
 
-Authenticated requests support:
+Les requêtes authentifiées disponibles sont :
 
 - `GET /api/v1/tickets?page=1&status=open&priority=high&search=export`
 - `GET /api/v1/tickets/{ticket}`
 - `POST /api/v1/tickets` with `title`, `description`, `category_id`, and `priority`
 
-Ticket list results are paginated and filtered through the same role scope as the Inertia application. Clients see owned tickets, agents see assigned tickets, and administrators see all tickets.
+Les listes sont paginées et utilisent le même périmètre de rôle que l’application Inertia. Les clients voient leurs tickets, les agents leurs tickets assignés et les administrateurs tous les tickets.
 
-Requests are limited to 60 per minute per authenticated user or source IP.
+Les requêtes sont limitées à 60 par minute et par utilisateur authentifié ou adresse IP source.
 
-## Revocation
+## Révocation
 
 ```http
 DELETE /api/v1/auth/tokens/current

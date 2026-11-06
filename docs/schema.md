@@ -1,4 +1,4 @@
-# Schema
+# Schéma de données
 
 ```mermaid
 erDiagram
@@ -12,4 +12,4 @@ erDiagram
     users ||--o{ personal_access_tokens : authenticates
 ```
 
-Tickets are soft-deletable and indexed by status, priority, assignment, and reply/resolution timestamps. Attachments remain private on the local disk and are authorized through the ticket participant policy.
+Les tickets utilisent la suppression logique et sont indexés par statut, priorité, assignation et dates de réponse/résolution. Les pièces jointes restent privées sur le disque local et leur accès est autorisé via la policy des participants du ticket.
