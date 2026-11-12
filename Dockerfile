@@ -10,6 +10,17 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
+FROM composer:2 AS vendor-dev
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-interaction \
+    --no-progress \
+    --prefer-dist \
+    --no-scripts
+
 FROM php:8.5.12-cli-alpine AS assets
 
 WORKDIR /var/www/html
@@ -50,6 +61,10 @@ RUN chmod +x /usr/local/bin/entrypoint \
 
 ENTRYPOINT ["entrypoint"]
 CMD ["php-fpm"]
+
+FROM app AS app-dev
+
+COPY --from=vendor-dev /app/vendor ./vendor
 
 FROM nginx:1.27-alpine AS nginx
 

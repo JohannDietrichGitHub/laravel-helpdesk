@@ -1,0 +1,27 @@
+services:
+    app:
+        build:
+            target: app-dev
+        user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+        volumes:
+            - .:/var/www/html
+            - vendor:/var/www/html/vendor
+
+    queue:
+        build:
+            target: app-dev
+        user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+        volumes:
+            - .:/var/www/html
+            - vendor:/var/www/html/vendor
+
+    scheduler:
+        build:
+            target: app-dev
+        user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+        volumes:
+            - .:/var/www/html
+            - vendor:/var/www/html/vendor
+
+volumes:
+    vendor:
