@@ -25,6 +25,36 @@ docker compose up --build --detach --wait
 docker compose exec app php artisan migrate:fresh --seed --force
 ```
 
+### Blueprint
+
+L’image de développement inclut Laravel Shift Blueprint ainsi que le package bêta
+`sediqzada/inertia-blueprint`. Ce sont deux outils de génération distincts : Shift
+Blueprint génère le backend Laravel, tandis qu’Inertia Blueprint génère les pages
+React/TypeScript.
+
+L’exemple `draft.yaml` définit un modèle `Project` et ses actions de contrôleur Inertia.
+Utilisez `--only` afin que Laravel Shift ne génère ni vues Blade ni pages Inertia :
+
+```bash
+docker compose exec app php artisan blueprint:build draft.yaml \
+    --only=models,controllers,migrations,factories,requests,routes,tests
+```
+
+Générez ensuite les pages React/TypeScript depuis `blueprint.json` :
+
+```bash
+docker compose exec app php artisan blueprint:generate blueprint.json
+```
+
+Ces outils génèrent une base de travail, pas du code prêt pour la production. Vérifiez
+le contrôleur, les routes, la validation, l’autorisation et les pages React avant de
+committer. Après la génération des fichiers frontend, reconstruisez l’image Docker
+des assets :
+
+```bash
+docker compose up --build --detach --wait
+```
+
 Services disponibles :
 
 - Application : <http://localhost:8000>

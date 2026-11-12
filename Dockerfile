@@ -39,6 +39,13 @@ RUN cp .env.example .env \
     && php artisan key:generate --force \
     && npm run build
 
+FROM node:22-alpine AS frontend-dev
+
+WORKDIR /var/www/html
+
+COPY package*.json ./
+RUN npm ci
+
 FROM php:8.5.12-fpm-alpine AS app
 
 WORKDIR /var/www/html

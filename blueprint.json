@@ -1,0 +1,35 @@
+{
+    "model": "Project",
+    "fields": [
+        {
+            "name": "name",
+            "type": "string",
+            "inputType": "text",
+            "searchable": true
+        },
+        {
+            "name": "slug",
+            "type": "string",
+            "inputType": "text",
+            "searchable": true
+        },
+        {
+            "name": "description",
+            "type": "text",
+            "inputType": "textarea"
+        },
+        {
+            "name": "status",
+            "type": "string",
+            "inputType": "select",
+            "options": ["active", "paused", "completed"]
+        },
+        {
+            "name": "starts_at",
+            "type": "date",
+            "inputType": "date"
+        }
+    ],
+    "pages": ["index", "create", "edit", "view"],
+    "language": "ts"
+}

@@ -6,6 +6,26 @@ services:
         volumes:
             - .:/var/www/html
             - vendor:/var/www/html/vendor
+            - ./docker/php/opcache-dev.ini:/usr/local/etc/php/conf.d/opcache.ini:ro
+
+    nginx:
+        volumes:
+            - .:/var/www/html:ro
+
+    vite:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            target: frontend-dev
+        working_dir: /var/www/html
+        command: npm run dev -- --host 0.0.0.0
+        ports:
+            - '5173:5173'
+        volumes:
+            - .:/var/www/html
+            - node-modules:/var/www/html/node_modules
+        environment:
+            CHOKIDAR_USEPOLLING: 'true'
 
     queue:
         build:
@@ -25,3 +45,4 @@ services:
 
 volumes:
     vendor:
+    node-modules:

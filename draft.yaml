@@ -1,0 +1,37 @@
+# Laravel Shift Blueprint example.
+# Build it with: docker compose exec app php artisan blueprint:build draft.yaml
+# Review the generated files before committing them to the application.
+
+models:
+  Project:
+    name: string:150
+    slug: string:150 unique
+    description: nullable text
+    status: string:32 default:active
+    starts_at: nullable date
+    ends_at: nullable date
+    owner_id: id:user
+    timestamps
+
+controllers:
+  Project:
+    index:
+      query: all
+      inertia: project.index with:projects
+    create:
+      inertia: project.create
+    store:
+      validate: name, slug, description, status, starts_at, ends_at, owner_id
+      save: project
+      redirect: projects.index
+    show:
+      inertia: project.show with:project
+    edit:
+      inertia: project.edit with:project
+    update:
+      validate: name, slug, description, status, starts_at, ends_at, owner_id
+      update: project
+      redirect: projects.index
+    destroy:
+      delete: project
+      redirect: projects.index
